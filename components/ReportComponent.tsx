@@ -9,7 +9,7 @@ type Props = {}
 
 const ReportComponent = (props: Props) => {
     const { toast } = useToast()
-
+    const [base64Data, setBase64Data] = React.useState<string | null>(null);
     function handelReportSelection(event: ChangeEvent<HTMLInputElement>): void {
         if (!event.target.files) return;
 
@@ -38,8 +38,20 @@ const ReportComponent = (props: Props) => {
                 reader.onloadend = () => {
                     const fileContent = reader.result as string;
                     console.log(fileContent);
+                    setBase64Data(fileContent);
                 }
                 reader.readAsDataURL(file);
+            }
+            if (isValidImage) {
+                compressImage(file, (compressedFile: File) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        const fileContent = reader.result as string;
+                        console.log(fileContent);
+                        setBase64Data(fileContent);
+                    }
+                    reader.readAsDataURL(compressedFile);
+                })
             }
         }
     }
@@ -63,3 +75,75 @@ const ReportComponent = (props: Props) => {
 }
 
 export default ReportComponent
+// function compressImage(file: File, callback: (compressedFile: File) => void) {
+//     const reader = new FileReader();
+//     reader.onload = (e) => {
+//         const img = new Image();
+//         img.onload = () => {
+//             //create canvas element 
+//             const canvas = document.createElement('canvas');
+//             const ctx = canvas.getContext('2d');
+
+//             canvas.width = img.width;
+//             canvas.height = img.height;
+//             ctx!.drawImage(img, 0, 0);
+//             const quality = 0.1;
+
+//             const dataURL = canvas.toDataURL('image/jpeg', quality);
+//             const byteString = atob(dataURL.split(',')[1]);
+//             const ab = new ArrayBuffer(byteString.length);
+//             const ia = new Uint8Array(ab);
+//             for (let i = 0; i < byteString.length; i++) {
+//                 ia[i] = byteString.charCodeAt(i);
+//             }
+//             const compressedFile = new File([ab], file.name, { type: 'image/jpeg' });
+//             callback(compressedFile);
+//         }
+//         img.src = e.target!.result as string;
+//     };
+//     reader.readAsDataURL(file);
+// }
+function compressImage(file: File, callback: (compressedFile: File) => void) {
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+        const img = new Image();
+
+        img.onload = () => {
+            // Create canvas element
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            if (!ctx) {
+                throw new Error('Could not get canvas context');
+            }
+
+            // Set canvas dimensions
+            canvas.width = img.width;
+            canvas.height = img.height;
+
+            // Draw the image on the canvas
+            ctx.drawImage(img, 0, 0);
+
+            const quality = 0.1; // Compression quality (0.0 to 1.0)
+
+            // Convert canvas to Data URL and then to a compressed file
+            const dataURL = canvas.toDataURL('image/jpeg', quality);
+            const byteString = atob(dataURL.split(',')[1]);
+            const ab = new Uint8Array(byteString.length);
+
+            for (let i = 0; i < byteString.length; i++) {
+                ab[i] = byteString.charCodeAt(i);
+            }
+
+            // Create a new file from the compressed data
+            const compressedFile = new File([ab], file.name, { type: 'image/jpeg' });
+            callback(compressedFile);
+        };
+
+        img.src = e.target?.result as string; // Use optional chaining for safety
+    };
+
+    reader.readAsDataURL(file);
+}
+
