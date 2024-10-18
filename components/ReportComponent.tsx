@@ -1,15 +1,47 @@
-
 import React, { ChangeEvent } from 'react'
 import { Input } from './ui/input'
 import { Button } from './ui/button'
 import { Label } from './ui/label'
 import { Textarea } from './ui/textarea'
+import { useToast } from "@/hooks/use-toast"
 
 type Props = {}
 
 const ReportComponent = (props: Props) => {
+    const { toast } = useToast()
+
     function handelReportSelection(event: ChangeEvent<HTMLInputElement>): void {
-        throw new Error('Function not implemented.')
+        if (!event.target.files) return;
+
+        const file = event.target.files[0];
+        if (file) {
+            let isValidImage = false
+            let isValidDoc = false
+            const validImages = ['image/jpeg', 'image/jpg', 'image/png']
+            const validDocs = ['application/pdf']
+
+            if (validImages.includes(file.type)) {
+                isValidImage = true
+            }
+            if (validDocs.includes(file.type)) {
+                isValidDoc = true
+            }
+            if (!(isValidImage || isValidDoc)) {
+                toast({
+                    description: "Filetype Not supported",
+                    variant: "destructive"
+                })
+                return
+            }
+            if (isValidDoc) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const fileContent = reader.result as string;
+                    console.log(fileContent);
+                }
+                reader.readAsDataURL(file);
+            }
+        }
     }
 
     function extracDetails(): void {
